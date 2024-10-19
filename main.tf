@@ -129,6 +129,10 @@ resource "aws_instance" "web-server" {
   }
 }
 
+resource "random_string" "random" {
+  length    = 10
+}
+
 resource "aws_s3_bucket" "my-new-S3-bucket" {
   bucket = "my-new-tf-test-bucket-yusufbucket"
 

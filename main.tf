@@ -115,3 +115,39 @@ resource "aws_nat_gateway" "nat_gateway" {
     Name = "yusuf-demo_nat_gateway"
   }
 }
+
+resource "aws_instance" "web-server" {
+  ami           = "ami-0ea3c35c5c3284d82"
+  instance_type = "t2.micro"
+
+  subnet_id              = aws_subnet.public_subnets["public_subnet_1"].id
+  vpc_security_group_ids = ["sg-07e8c1829445e6a44"]
+
+  tags = {
+    Name      = "yusuf-demo-web-server"
+    Terraform = "true"
+  }
+}
+
+resource "aws_s3_bucket" "my-new-S3-bucket" {
+  bucket = "my-new-tf-test-bucket-yusufbucket"
+
+  tags = {
+    Name    = "Yusuf S3 Bucket"
+    Purpose = "Intro to Resource Blocks Lab"
+  }
+}
+
+resource "aws_s3_bucket_ownership_controls" "my-aws-ownership-control" {
+  bucket = aws_s3_bucket.my-new-S3-bucket.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+resource "aws_s3_bucket_acl" "my_new_bucket_acl" {
+  depends_on = [aws_s3_bucket_ownership_controls.my-aws-ownership-control]
+
+  bucket = aws_s3_bucket.my-new-S3-bucket.id
+  acl    = "private"
+}

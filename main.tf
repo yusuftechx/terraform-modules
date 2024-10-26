@@ -7,6 +7,11 @@ provider "aws" {
 data "aws_availability_zones" "available" {}
 data "aws_region" "current" {}
 
+locals {
+  team        = "api_mgmt_dev"
+  application = "corp_api"
+  server_name = "ec2-${var.environment}-api-${var.variables_sub_az}"
+}
 #Define the VPC
 resource "aws_vpc" "vpc" {
   cidr_block = var.vpc_cidr
@@ -121,20 +126,21 @@ resource "aws_instance" "web-server" {
   instance_type = "t2.micro"
 
   subnet_id              = aws_subnet.public_subnets["public_subnet_1"].id
-  vpc_security_group_ids = ["sg-07e8c1829445e6a44"]
+  vpc_security_group_ids = ["sg-01b5ecc7bea7a0485"]
 
   tags = {
-    Name      = "yusuf-demo-web-server"
-    Terraform = "true"
+    Name  = local.server_name
+    Owner = local.team
+    App   = local.application
   }
 }
 
-resource "random_string" "random" {
-  length    = 10
+resource "random_id" "random" {
+  byte_length = 16
 }
 
 resource "aws_s3_bucket" "my-new-S3-bucket" {
-  bucket = "my-new-tf-test-bucket-yusufbucket"
+  bucket = "my-new-tf-test-bucket-${random_id.random.hex}"
 
   tags = {
     Name    = "Yusuf S3 Bucket"
@@ -154,4 +160,42 @@ resource "aws_s3_bucket_acl" "my_new_bucket_acl" {
 
   bucket = aws_s3_bucket.my-new-S3-bucket.id
   acl    = "private"
+}
+
+resource "aws_security_group" "my-new-security-group" {
+  name        = "web_server_inbound"
+  description = "Allow inbound traffic on tcp/443"
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress {
+    description = "Allow 443 from the Internet"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "SSH Access"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = {
+    Name    = "yusuf_web_server_inbound"
+    Purpose = "Intro to Resource Blocks Lab"
+  }
+}
+
+resource "aws_subnet" "variables-subnet" {
+  vpc_id                  = aws_vpc.vpc.id
+  cidr_block              = var.variables_sub_cidr
+  availability_zone       = var.variables_sub_az
+  map_public_ip_on_launch = var.variables_sub_auto_ip
+
+  tags = {
+    Name      = "yusuf-sub-variables-${var.variables_sub_az}"
+    Terraform = "true"
+  }
 }
